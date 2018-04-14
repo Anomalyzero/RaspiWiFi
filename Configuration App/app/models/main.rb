@@ -64,6 +64,7 @@ class Main < ActiveRecord::Base
 
   def self.create_wpa_supplicant(user_ssid, encryption_type, user_wifi_key)
 		temp_conf_file = File.new('../tmp/wpa_supplicant.conf.tmp', 'w')
+		lsb_release_string = %x{lsb_release -a}
 
     if encryption_type == 'WPA2'
       temp_conf_file.puts 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev'
@@ -100,18 +101,26 @@ class Main < ActiveRecord::Base
 
 		system('sudo cp -r ../tmp/wpa_supplicant.conf.tmp /etc/wpa_supplicant/wpa_supplicant.conf')
 		system('rm ../tmp/wpa_supplicant.conf.tmp')
+
+		if lsb_release_string.include?('Ubuntu')
+			puts "************ Ubuntu Connecting **************"
+			system('sudo nmcli device wifi connect #{user_ssid} password #{user_wifi_key}')
+		end
 	end
 
   def self.set_ap_client_mode
 	raspiwifi_path = find_raspiwifi_path()
 	lsb_release_string = %x{lsb_release -a}
-	
+
 	if lsb_release_string.include?('jessie')
 		system ('sudo cp -r ' + raspiwifi_path + '/Reset\ Device/static_files/interfaces.apclient /etc/network/interfaces')
 	elsif lsb_release_string.include?('stretch')
 		system ('sudo rm /etc/network/interfaces')
+	elsif lsb_release_string.include?('Ubuntu')
+		system ('sudo rm /etc/network/interfaces')
+		system('sudo rm /etc/wpa_supplicant/wpa_supplicant.conf')
 	end
-	
+
     system ('rm /etc/cron.raspiwifi/aphost_bootstrapper')
     system ('sudo cp -r ' + raspiwifi_path + '/Reset\ Device/static_files/apclient_bootstrapper /etc/cron.raspiwifi/')
     system ('sudo cp -r ' + raspiwifi_path + '/Reset\ Device/static_files/isc-dhcp-server.apclient /etc/default/isc-dhcp-server')
@@ -120,17 +129,17 @@ class Main < ActiveRecord::Base
 
   def self.reset_all
     raspiwifi_path = find_raspiwifi_path()
-    
+
     system ('sudo rm -f /etc/wpa_supplicant/wpa_supplicant.conf')
     system ('rm -f ' + raspiwifi_path + '/tmp/*')
     system ('sudo cp -r ' + raspiwifi_path + '/Reset\ Device/static_files/interfaces.aphost /etc/network/interfaces')
     system ('sudo cp -r ' + raspiwifi_path + '/Reset\ Device/static_files/rc.local.aphost /etc/rc.local')
     system ('sudo reboot')
   end
-  
+
   def self.find_raspiwifi_path
 	raspiwifi_path = File.dirname(__FILE__)[0..-30]
-	
+
 	raspiwifi_path
   end
 
