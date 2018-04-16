@@ -103,7 +103,7 @@ class Main < ActiveRecord::Base
 		system('rm ../tmp/wpa_supplicant.conf.tmp')
 
 		if lsb_release_string.include?('Ubuntu')
-			system('sudo nmcli device wifi connect ' + user_ssid + ' password ' + user_wifi_key')
+			system('sudo nmcli device wifi connect ' + user_ssid + ' password ' + user_wifi_key)
 		end
 	end
 
